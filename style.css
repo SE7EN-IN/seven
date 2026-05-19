@@ -553,18 +553,23 @@ img { display:block; width:100%; }
 .shop-title span { color: var(--red); }
 
 .filter-tabs {
-  display: flex; gap:4px; flex-wrap:wrap;
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  max-width: 600px;
 }
 .filter-tab {
-  padding: 8px 18px;
+  padding: 7px 14px;
   background: transparent;
   border: 1px solid var(--black-4);
   color: var(--white-faint);
   font-family: var(--font-ui);
   font-weight: 500;
-  font-size: 0.75rem;
-  letter-spacing: 2px;
+  font-size: 0.72rem;
+  letter-spacing: 1.5px;
   transition: all 0.2s;
+  white-space: nowrap;
 }
 .filter-tab:hover { border-color: var(--red); color:var(--white); }
 .filter-tab.active { background:var(--red); border-color:var(--red); color:var(--white); }
