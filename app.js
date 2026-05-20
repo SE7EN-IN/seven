@@ -493,7 +493,7 @@ ${customerAddress?.address}
 Thank you for shopping with *SE7EN!* 🔴
 Your order will be dispatched soon.
 For any queries contact us:
-📞 +91 6381390026
+📞 +91 9965682888
 📸 @se7en.inn`;
 
   // Send to customer WhatsApp
