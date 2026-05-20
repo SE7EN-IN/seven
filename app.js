@@ -20,9 +20,10 @@ try {
 const RAZORPAY_KEY = 'YOUR_RAZORPAY_KEY_ID';
 
 // ====== EMAILJS CONFIG ======
-const EMAILJS_SERVICE_ID  = 'service_203x9cg';
-const EMAILJS_TEMPLATE_ID = 'template_nit8435';
-const EMAILJS_PUBLIC_KEY  = 'RdacJAmkcV4qQeNBn';
+const EMAILJS_SERVICE_ID        = 'service_203x9cg';
+const EMAILJS_TEMPLATE_ID       = 'template_nit8435'; // Customer confirmation
+const EMAILJS_OWNER_TEMPLATE_ID = 'template_kh2dk3t'; // Owner notification
+const EMAILJS_PUBLIC_KEY        = 'RdacJAmkcV4qQeNBn';
 
 // ====== STATE ======
 let cart = JSON.parse(localStorage.getItem('se7en_cart') || '[]');
@@ -463,7 +464,36 @@ function showSuccess(paymentId) {
   document.getElementById('successPid').textContent = 'Payment ID: ' + paymentId;
   openModal('successModalBg');
   sendEmailConfirmation(paymentId);
+  sendOwnerEmailNotification(paymentId);
   sendWhatsAppConfirmation(paymentId);
+}
+
+// ====== SEND EMAIL NOTIFICATION TO OWNER ======
+async function sendOwnerEmailNotification(paymentId) {
+  const itemsList = cart.map(i =>
+    `• ${i.name} (Size: ${i.size}) x${i.qty} — ₹${(i.price * i.qty).toLocaleString('en-IN')}`
+  ).join('\n');
+
+  const total = cartTotal();
+  const freeDelivery = total >= 999 ? 'FREE ✅' : '₹49';
+
+  const templateParams = {
+    customer_name    : customerAddress.name,
+    customer_email   : customerAddress.email,
+    customer_phone   : customerAddress.phone,
+    delivery_address : customerAddress.address,
+    order_items      : itemsList,
+    total_amount     : `₹${total.toLocaleString('en-IN')}`,
+    delivery_charge  : freeDelivery,
+    order_id         : paymentId,
+  };
+
+  try {
+    await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_OWNER_TEMPLATE_ID, templateParams);
+    console.log('Owner notification email sent!');
+  } catch (err) {
+    console.error('Owner email failed:', err);
+  }
 }
 
 // ====== SEND EMAIL CONFIRMATION TO CUSTOMER ======
