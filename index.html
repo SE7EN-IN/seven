@@ -3,6 +3,10 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <!-- Security Headers -->
+  <meta http-equiv="X-Frame-Options" content="DENY"/>
+  <meta http-equiv="X-Content-Type-Options" content="nosniff"/>
+  <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests"/>
   <title>SE7EN — Drop. Wear. Dominate.</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Semi+Condensed:wght@300;400;600;700&family=Oswald:wght@200;300;400;500;600;700&display=swap" rel="stylesheet"/>
@@ -359,7 +363,7 @@
     </div>
     <div class="modal-tag" style="margin-top:20px">ORDER CONFIRMED</div>
     <h3 class="modal-title">THANK YOU!</h3>
-    <p class="success-msg">Your jersey is on its way. We'll contact you soon on WhatsApp with tracking details.</p>
+    <p class="success-msg">Your order has been placed successfully! 🎉<br/>Check your <strong>WhatsApp</strong> for full order details and receipt.</p>
     <p class="success-pid" id="successPid"></p>
     <button class="cta-primary full" onclick="closeModal('successModalBg'); resetCart()">CONTINUE SHOPPING <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></button>
   </div>

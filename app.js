@@ -4,8 +4,8 @@
 // ===========================
 
 // ====== SUPABASE CONFIG ======
-const SUPABASE_URL = 'https://qqbrvcbhjtkeppgwqrnp.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFxYnJ2Y2JoanRrZXBwZ3dxcm5wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcxODY2NTUsImV4cCI6MjA5Mjc2MjY1NX0.BBOU8zsf5jOY_dsxISwjsotUL2hO-mnDwChJ0cFA9RQ';
+const SUPABASE_URL = 'https://ovckuxlmtezrwldwasjs.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im92Y2t1eGxtdGV6cndsZHdhc2pzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyNTI4MzAsImV4cCI6MjA5NDgyODgzMH0.AD7tBMUPTx8nj8ZIhXwKFUNNns1gcFocpUTVqI4QLLM';
 
 let supabaseClient = null;
 try {
@@ -450,6 +450,63 @@ async function saveOrder(paymentId) {
 function showSuccess(paymentId) {
   document.getElementById('successPid').textContent = 'Payment ID: ' + paymentId;
   openModal('successModalBg');
+  sendWhatsAppConfirmation(paymentId);
+}
+
+// ====== SEND WHATSAPP ORDER CONFIRMATION TO CUSTOMER ======
+function sendWhatsAppConfirmation(paymentId) {
+  const customerPhone = customerAddress?.phone?.replace(/\D/g, '');
+  if (!customerPhone) return;
+
+  // Build items list
+  const itemsList = cart.map(i =>
+    `▸ ${i.name} (Size: ${i.size}) x${i.qty} — ₹${(i.price * i.qty).toLocaleString('en-IN')}`
+  ).join('\n');
+
+  const total = cartTotal();
+  const freeDelivery = total >= 999 ? 'FREE ✅' : '₹49';
+
+  // Build full message
+  const message =
+`🛍️ *ORDER CONFIRMED — SE7EN*
+━━━━━━━━━━━━━━━━━━━━
+✅ *Payment Successful!*
+
+📦 *ORDER DETAILS*
+${itemsList}
+
+━━━━━━━━━━━━━━━━━━━━
+🧾 *Subtotal:* ₹${total.toLocaleString('en-IN')}
+🚚 *Delivery:* ${freeDelivery}
+💰 *Total Paid:* ₹${total.toLocaleString('en-IN')}
+
+━━━━━━━━━━━━━━━━━━━━
+📍 *Delivery Address*
+${customerAddress?.name}
+${customerAddress?.address}
+📞 ${customerAddress?.phone}
+
+━━━━━━━━━━━━━━━━━━━━
+🔖 *Payment ID:* ${paymentId}
+
+━━━━━━━━━━━━━━━━━━━━
+Thank you for shopping with *SE7EN!* 🔴
+Your order will be dispatched soon.
+For any queries contact us:
+📞 +91 6381390026
+📸 @se7en.inn`;
+
+  // Send to customer WhatsApp
+  const encoded = encodeURIComponent(message);
+  const isMobile = /iPhone|Android/i.test(navigator.userAgent);
+  const waURL = isMobile
+    ? `whatsapp://send?phone=91${customerPhone}&text=${encoded}`
+    : `https://wa.me/91${customerPhone}?text=${encoded}`;
+
+  // Small delay so success modal shows first
+  setTimeout(() => {
+    window.open(waURL, '_blank');
+  }, 1500);
 }
 
 // ====== MODAL HELPERS ======
