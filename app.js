@@ -154,6 +154,7 @@ async function loadProducts() {
       sizes: p.sizes || ['S', 'M', 'L', 'XL', 'XXL']
     }));
 
+    buildFilterTabs(allProducts);
     renderProducts(allProducts);
 
   } catch (err) {
@@ -165,7 +166,63 @@ async function loadProducts() {
   }
 }
 
-// ====== RENDER PRODUCTS ======
+// ====== CATEGORY DISPLAY NAMES ======
+const categoryNames = {
+  all:         { tag: '// THE DROP',      title: 'ALL',         accent: 'JERSEYS'    },
+  football:    { tag: '// THE PITCH',     title: 'FOOTBALL',    accent: 'JERSEYS'    },
+  basketball:  { tag: '// THE COURT',     title: 'BASKETBALL',  accent: 'JERSEYS'    },
+  cricket:     { tag: '// THE CREASE',    title: 'CRICKET',     accent: 'JERSEYS'    },
+  retro:       { tag: '// THE CLASSICS',  title: 'RETRO',       accent: 'COLLECTION' },
+  streetwear:  { tag: '// THE STREETS',   title: 'STREET',      accent: 'WEAR'       },
+  shirt:       { tag: '// THE FITS',      title: 'SHIRTS',      accent: 'COLLECTION' },
+  't-shirt':   { tag: '// THE BASICS',    title: 'T-SHIRTS',    accent: 'COLLECTION' },
+};
+
+// ====== BUILD DYNAMIC FILTER TABS ======
+function buildFilterTabs(products) {
+  const filterTabs = document.getElementById('filterTabs');
+
+  // Get unique categories from loaded products
+  const categories = [...new Set(products.map(p => p.category).filter(Boolean))];
+
+  // Sort categories in preferred order
+  const order = ['football', 'basketball', 'cricket', 'retro', 'streetwear', 'shirt', 't-shirt'];
+  categories.sort((a, b) => order.indexOf(a) - order.indexOf(b));
+
+  // Build tabs — ALL first then only available categories
+  filterTabs.innerHTML = `
+    <button class="filter-tab active" onclick="filterProducts('all', this)">ALL</button>
+    ${categories.map(cat => `
+      <button class="filter-tab" onclick="filterProducts('${cat}', this)">
+        ${cat.toUpperCase()}
+      </button>
+    `).join('')}
+  `;
+}
+
+// ====== UPDATE SHOP TITLE ======
+function updateShopTitle(category) {
+  const info   = categoryNames[category] || categoryNames['all'];
+  const tag    = document.getElementById('shopTag');
+  const title  = document.getElementById('shopTitle');
+
+  // Animate out
+  title.style.opacity = '0';
+  title.style.transform = 'translateY(10px)';
+  tag.style.opacity = '0';
+
+  setTimeout(() => {
+    tag.textContent   = info.tag;
+    title.innerHTML   = `${info.title} <span>${info.accent}</span>`;
+
+    // Animate in
+    title.style.transition = 'all 0.3s ease';
+    tag.style.transition   = 'all 0.3s ease';
+    title.style.opacity    = '1';
+    title.style.transform  = 'translateY(0)';
+    tag.style.opacity      = '1';
+  }, 150);
+}
 function renderProducts(items) {
   const grid = document.getElementById('productsGrid');
   if (!items.length) {
@@ -211,6 +268,7 @@ function filterProducts(cat, btn) {
   document.querySelectorAll('.filter-tab').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   const filtered = cat === 'all' ? allProducts : allProducts.filter(p => p.category === cat);
+  updateShopTitle(cat);
   renderProducts(filtered);
 }
 
