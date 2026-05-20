@@ -413,8 +413,8 @@ function initRazorpay() {
     },
     theme: { color: '#D10000' },
     handler: async function(response) {
-      await saveOrder(response.razorpay_payment_id);
-      showSuccess(response.razorpay_payment_id);
+      const orderId = await saveOrder(response.razorpay_payment_id);
+      showSuccess(orderId, response.razorpay_payment_id);
     },
     modal: {
       ondismiss: () => showToast('Payment cancelled. Try again.')
@@ -423,10 +423,10 @@ function initRazorpay() {
 
   if (typeof Razorpay === 'undefined') {
     showToast('Razorpay not configured. Simulating...');
-    setTimeout(() => {
-      const fakeId = 'DEMO_' + Date.now();
-      saveOrder(fakeId);
-      showSuccess(fakeId);
+    setTimeout(async () => {
+      const fakePayId = 'DEMO_' + Date.now();
+      const orderId = await saveOrder(fakePayId);
+      showSuccess(orderId, fakePayId);
     }, 1000);
     return;
   }
@@ -436,40 +436,67 @@ function initRazorpay() {
   rzp.open();
 }
 
+// ====== GENERATE CUSTOM ORDER ID ======
+async function generateOrderId() {
+  const now   = new Date();
+  const year  = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day   = String(now.getDate()).padStart(2, '0');
+  const date  = `${year}${month}${day}`;
+
+  // Get total order count from Supabase for sequence number
+  try {
+    const { count } = await supabaseClient
+      .from('orders')
+      .select('*', { count: 'exact', head: true });
+    const sequence = String((count || 0) + 1).padStart(3, '0');
+    return `SE7EN-${date}-${sequence}`;
+  } catch {
+    // Fallback if count fails
+    const random = String(Math.floor(Math.random() * 999) + 1).padStart(3, '0');
+    return `SE7EN-${date}-${random}`;
+  }
+}
+
 // ====== SAVE ORDER TO SUPABASE ======
 async function saveOrder(paymentId) {
   if (!supabaseClient) {
     console.log('Order (Supabase not configured):', { paymentId, customerAddress, cart, total: cartTotal() });
-    return;
+    return null;
   }
   try {
+    const orderId = await generateOrderId();
     const { error } = await supabaseClient.from('orders').insert({
-      payment_id: paymentId,
-      customer_name: customerAddress?.name,
-      customer_phone: customerAddress?.phone,
-      delivery_address: customerAddress?.address,
-      items: JSON.stringify(cart),
-      total_amount: cartTotal(),
-      status: 'confirmed',
-      created_at: new Date().toISOString()
+      order_id         : orderId,
+      payment_id       : paymentId,
+      customer_name    : customerAddress?.name,
+      customer_phone   : customerAddress?.phone,
+      customer_email   : customerAddress?.email,
+      delivery_address : customerAddress?.address,
+      items            : JSON.stringify(cart),
+      total_amount     : cartTotal(),
+      status           : 'confirmed',
+      created_at       : new Date().toISOString()
     });
     if (error) console.error('Order save error:', error);
+    return orderId;
   } catch (e) {
     console.error('Order save failed:', e);
+    return null;
   }
 }
 
 // ====== SUCCESS ======
-function showSuccess(paymentId) {
-  document.getElementById('successPid').textContent = 'Payment ID: ' + paymentId;
+function showSuccess(orderId, paymentId) {
+  document.getElementById('successPid').textContent = `Order ID: ${orderId}`;
   openModal('successModalBg');
-  sendEmailConfirmation(paymentId);
-  sendOwnerEmailNotification(paymentId);
-  sendWhatsAppConfirmation(paymentId);
+  sendEmailConfirmation(orderId, paymentId);
+  sendOwnerEmailNotification(orderId, paymentId);
+  sendWhatsAppConfirmation(orderId, paymentId);
 }
 
 // ====== SEND EMAIL NOTIFICATION TO OWNER ======
-async function sendOwnerEmailNotification(paymentId) {
+async function sendOwnerEmailNotification(orderId, paymentId) {
   const itemsList = cart.map(i =>
     `• ${i.name} (Size: ${i.size}) x${i.qty} — ₹${(i.price * i.qty).toLocaleString('en-IN')}`
   ).join('\n');
@@ -485,7 +512,8 @@ async function sendOwnerEmailNotification(paymentId) {
     order_items      : itemsList,
     total_amount     : `₹${total.toLocaleString('en-IN')}`,
     delivery_charge  : freeDelivery,
-    order_id         : paymentId,
+    order_id         : orderId,
+    payment_id       : paymentId,
   };
 
   try {
@@ -497,7 +525,7 @@ async function sendOwnerEmailNotification(paymentId) {
 }
 
 // ====== SEND EMAIL CONFIRMATION TO CUSTOMER ======
-async function sendEmailConfirmation(paymentId) {
+async function sendEmailConfirmation(orderId, paymentId) {
   if (!customerAddress?.email) return;
 
   const itemsList = cart.map(i =>
@@ -515,7 +543,8 @@ async function sendEmailConfirmation(paymentId) {
     order_items      : itemsList,
     total_amount     : `₹${total.toLocaleString('en-IN')}`,
     delivery_charge  : freeDelivery,
-    order_id         : paymentId,
+    order_id         : orderId,
+    payment_id       : paymentId,
   };
 
   try {
@@ -527,11 +556,10 @@ async function sendEmailConfirmation(paymentId) {
 }
 
 // ====== SEND WHATSAPP ORDER CONFIRMATION TO CUSTOMER ======
-function sendWhatsAppConfirmation(paymentId) {
+function sendWhatsAppConfirmation(orderId, paymentId) {
   const customerPhone = customerAddress?.phone?.replace(/\D/g, '');
   if (!customerPhone) return;
 
-  // Build items list
   const itemsList = cart.map(i =>
     `▸ ${i.name} (Size: ${i.size}) x${i.qty} — ₹${(i.price * i.qty).toLocaleString('en-IN')}`
   ).join('\n');
@@ -539,7 +567,6 @@ function sendWhatsAppConfirmation(paymentId) {
   const total = cartTotal();
   const freeDelivery = total >= 999 ? 'FREE ✅' : '₹49';
 
-  // Build full message
   const message =
 `🛍️ *ORDER CONFIRMED — SE7EN*
 ━━━━━━━━━━━━━━━━━━━━
@@ -560,7 +587,8 @@ ${customerAddress?.address}
 📞 ${customerAddress?.phone}
 
 ━━━━━━━━━━━━━━━━━━━━
-🔖 *Payment ID:* ${paymentId}
+🔖 *Order ID:* ${orderId}
+💳 *Payment ID:* ${paymentId}
 
 ━━━━━━━━━━━━━━━━━━━━
 Thank you for shopping with *SE7EN!* 🔴
@@ -569,17 +597,13 @@ For any queries contact us:
 📞 +91 9965682888
 📸 @se7en.inn`;
 
-  // Send to customer WhatsApp
   const encoded = encodeURIComponent(message);
   const isMobile = /iPhone|Android/i.test(navigator.userAgent);
   const waURL = isMobile
     ? `whatsapp://send?phone=91${customerPhone}&text=${encoded}`
     : `https://wa.me/91${customerPhone}?text=${encoded}`;
 
-  // Small delay so success modal shows first
-  setTimeout(() => {
-    window.open(waURL, '_blank');
-  }, 1500);
+  setTimeout(() => { window.open(waURL, '_blank'); }, 1500);
 }
 
 // ====== MODAL HELPERS ======
