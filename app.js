@@ -19,6 +19,11 @@ try {
 // ====== RAZORPAY CONFIG ======
 const RAZORPAY_KEY = 'YOUR_RAZORPAY_KEY_ID';
 
+// ====== EMAILJS CONFIG ======
+const EMAILJS_SERVICE_ID  = 'service_203x9cg';
+const EMAILJS_TEMPLATE_ID = 'template_nit8435';
+const EMAILJS_PUBLIC_KEY  = 'RdacJAmkcV4qQeNBn';
+
 // ====== STATE ======
 let cart = JSON.parse(localStorage.getItem('se7en_cart') || '[]');
 let allProducts = [];
@@ -28,6 +33,8 @@ let customerAddress = null;
 
 // ====== INIT ======
 document.addEventListener('DOMContentLoaded', async () => {
+  // Initialize EmailJS
+  emailjs.init(EMAILJS_PUBLIC_KEY);
   initLoader();
   initCursor();
   initNavScroll();
@@ -355,14 +362,15 @@ function proceedToCheckout() {
 }
 
 function proceedToPayment() {
-  const name = document.getElementById('addrName').value.trim();
+  const name  = document.getElementById('addrName').value.trim();
   const phone = document.getElementById('addrPhone').value.trim();
+  const email = document.getElementById('addrEmail').value.trim();
   const line1 = document.getElementById('addrLine1').value.trim();
-  const city = document.getElementById('addrCity').value.trim();
-  const pin = document.getElementById('addrPin').value.trim();
+  const city  = document.getElementById('addrCity').value.trim();
+  const pin   = document.getElementById('addrPin').value.trim();
   const state = document.getElementById('addrState').value.trim();
 
-  if (!name || !phone || !line1 || !city || !pin || !state) {
+  if (!name || !phone || !email || !line1 || !city || !pin || !state) {
     showToast('Please fill all required fields');
     return;
   }
@@ -370,9 +378,13 @@ function proceedToPayment() {
     showToast('Enter a valid 6-digit pincode');
     return;
   }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    showToast('Enter a valid email address');
+    return;
+  }
 
   customerAddress = {
-    name, phone,
+    name, phone, email,
     address: `${line1}, ${document.getElementById('addrLine2').value.trim()}, ${city} – ${pin}, ${state}`
   };
 
@@ -450,7 +462,38 @@ async function saveOrder(paymentId) {
 function showSuccess(paymentId) {
   document.getElementById('successPid').textContent = 'Payment ID: ' + paymentId;
   openModal('successModalBg');
+  sendEmailConfirmation(paymentId);
   sendWhatsAppConfirmation(paymentId);
+}
+
+// ====== SEND EMAIL CONFIRMATION TO CUSTOMER ======
+async function sendEmailConfirmation(paymentId) {
+  if (!customerAddress?.email) return;
+
+  const itemsList = cart.map(i =>
+    `• ${i.name} (Size: ${i.size}) x${i.qty} — ₹${(i.price * i.qty).toLocaleString('en-IN')}`
+  ).join('\n');
+
+  const total = cartTotal();
+  const freeDelivery = total >= 999 ? 'FREE ✅' : '₹49';
+
+  const templateParams = {
+    customer_name    : customerAddress.name,
+    customer_email   : customerAddress.email,
+    customer_phone   : customerAddress.phone,
+    delivery_address : customerAddress.address,
+    order_items      : itemsList,
+    total_amount     : `₹${total.toLocaleString('en-IN')}`,
+    delivery_charge  : freeDelivery,
+    order_id         : paymentId,
+  };
+
+  try {
+    await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, templateParams);
+    console.log('Email confirmation sent successfully!');
+  } catch (err) {
+    console.error('Email send failed:', err);
+  }
 }
 
 // ====== SEND WHATSAPP ORDER CONFIRMATION TO CUSTOMER ======
