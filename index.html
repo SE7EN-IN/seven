@@ -297,6 +297,32 @@
   </div>
 </aside>
 
+<!-- PRODUCT QUICK VIEW MODAL -->
+<div class="qv-overlay" id="qvOverlay" onclick="closeQuickView()"></div>
+<div class="qv-modal" id="qvModal">
+  <button class="qv-close" onclick="closeQuickView()">✕</button>
+  <div class="qv-left">
+    <div class="qv-img-wrap" id="qvImgWrap">
+      <div class="qv-badge" id="qvBadge"></div>
+    </div>
+  </div>
+  <div class="qv-right">
+    <div class="qv-category" id="qvCategory"></div>
+    <h2 class="qv-name" id="qvName"></h2>
+    <p class="qv-desc" id="qvDesc"></p>
+    <div class="qv-price" id="qvPrice"></div>
+    <div class="qv-divider"></div>
+    <div class="qv-size-label">SELECT SIZE</div>
+    <div class="qv-sizes" id="qvSizes"></div>
+    <div class="qv-divider"></div>
+    <button class="cta-primary full" id="qvAddBtn" onclick="qvAddToCart()">
+      ADD TO BAG
+      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+    </button>
+    <p class="qv-free-ship">🚚 Free delivery on orders above ₹999</p>
+  </div>
+</div>
+
 <!-- SIZE MODAL -->
 <div class="modal-bg" id="sizeModalBg">
   <div class="modal" id="sizeModal">

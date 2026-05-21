@@ -223,6 +223,60 @@ function updateShopTitle(category) {
     tag.style.opacity      = '1';
   }, 150);
 }
+// ====== QUICK VIEW ======
+let qvProduct = null;
+let qvSelectedSize = null;
+
+function openQuickView(productId) {
+  qvProduct = allProducts.find(p => p.id === productId);
+  qvSelectedSize = null;
+  if (!qvProduct) return;
+
+  // Image
+  const imgWrap = document.getElementById('qvImgWrap');
+  imgWrap.innerHTML = qvProduct.image
+    ? `<img src="${qvProduct.image}" alt="${qvProduct.name}"/>
+       <div class="qv-badge" style="${!qvProduct.badge ? 'display:none' : ''}">${qvProduct.badge || ''}</div>`
+    : `<div class="qv-img-placeholder">👕</div>
+       <div class="qv-badge" style="display:none"></div>`;
+
+  // Details
+  document.getElementById('qvCategory').textContent = qvProduct.category?.toUpperCase() || '';
+  document.getElementById('qvName').textContent      = qvProduct.name;
+  document.getElementById('qvDesc').textContent      = qvProduct.desc || '';
+  document.getElementById('qvPrice').textContent     = `₹${qvProduct.price.toLocaleString('en-IN')}`;
+
+  // Sizes
+  document.getElementById('qvSizes').innerHTML = qvProduct.sizes.map(s => `
+    <button class="qv-size-btn" onclick="selectQvSize('${s}', this)">${s}</button>
+  `).join('');
+
+  // Open
+  document.getElementById('qvOverlay').classList.add('open');
+  document.getElementById('qvModal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function selectQvSize(size, el) {
+  qvSelectedSize = size;
+  document.querySelectorAll('.qv-size-btn').forEach(b => b.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+function qvAddToCart() {
+  if (!qvSelectedSize) { showToast('Please select a size!'); return; }
+  closeQuickView();
+  addToCart(qvProduct, qvSelectedSize);
+}
+
+function closeQuickView() {
+  document.getElementById('qvOverlay').classList.remove('open');
+  document.getElementById('qvModal').classList.remove('open');
+  document.body.style.overflow = '';
+  qvProduct = null;
+  qvSelectedSize = null;
+}
+
 function renderProducts(items) {
   const grid = document.getElementById('productsGrid');
   if (!items.length) {
@@ -236,7 +290,7 @@ function renderProducts(items) {
   const isMobile = window.matchMedia('(hover: none) and (pointer: coarse)').matches;
 
   grid.innerHTML = items.map((p, i) => `
-    <div class="product-card" style="animation-delay:${isMobile ? 0 : i * 0.06}s">
+    <div class="product-card" style="animation-delay:${isMobile ? 0 : i * 0.06}s" onclick="openQuickView(${p.id})">
       <div class="product-img-wrap">
         ${p.image
           ? `<img src="${p.image}" alt="${p.name}" loading="lazy"/>`
@@ -246,8 +300,8 @@ function renderProducts(items) {
           ${p.badge ? `<span class="product-badge">${p.badge}</span>` : ''}
         </div>
         <div class="product-quick-add">
-          <span>SELECT SIZE</span>
-          <button class="quick-add-btn" onclick="openSizeModal(${p.id})">ADD TO BAG</button>
+          <span>QUICK VIEW</span>
+          <button class="quick-add-btn" onclick="event.stopPropagation(); openSizeModal(${p.id})">ADD TO BAG</button>
         </div>
       </div>
       <div class="product-info">
@@ -256,7 +310,7 @@ function renderProducts(items) {
         <div class="product-desc">${p.desc || ''}</div>
         <div class="product-footer">
           <div class="product-price">₹${p.price.toLocaleString('en-IN')}</div>
-          <button class="quick-add-btn" onclick="openSizeModal(${p.id})">ADD</button>
+          <button class="quick-add-btn" onclick="event.stopPropagation(); openSizeModal(${p.id})">ADD</button>
         </div>
       </div>
     </div>
