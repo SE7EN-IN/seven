@@ -4,8 +4,8 @@
 // ===========================
 
 // ====== SUPABASE CONFIG ======
-const SUPABASE_URL = 'YOUR_SUPABASE_URL';
-const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+const SUPABASE_URL = 'https://ovckuxlmtezrwldwasjs.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im92Y2t1eGxtdGV6cndsZHdhc2pzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyNTI4MzAsImV4cCI6MjA5NDgyODgzMH0.AD7tBMUPTx8nj8ZIhXwKFUNNns1gcFocpUTVqI4QLLM';
 
 let supabaseClient = null;
 try {
@@ -56,13 +56,20 @@ function initLoader() {
   const fill   = document.getElementById('loaderFill');
   const loader = document.getElementById('loader');
   const isMobile = window.matchMedia('(hover: none) and (pointer: coarse)').matches;
-  const duration = isMobile ? 800 : 1600;
+  const duration = isMobile ? 600 : 1200;
   setTimeout(() => { fill.style.width = '100%'; }, 100);
   setTimeout(() => {
     loader.classList.add('done');
-    // Force hide after animation
-    setTimeout(() => { loader.style.display = 'none'; }, 700);
+    loader.style.opacity = '0';
+    loader.style.pointerEvents = 'none';
+    setTimeout(() => {
+      loader.style.display = 'none';
+    }, 600);
   }, duration);
+  // Safety fallback — force hide after 3 seconds no matter what
+  setTimeout(() => {
+    loader.style.display = 'none';
+  }, 3000);
 }
 
 // ====== MAGNETIC CURSOR ======
