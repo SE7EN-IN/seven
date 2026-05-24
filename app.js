@@ -26,7 +26,15 @@ const EMAILJS_OWNER_TEMPLATE_ID = 'template_kh2dk3t'; // Owner notification
 const EMAILJS_PUBLIC_KEY        = 'RdacJAmkcV4qQeNBn';
 
 // ====== STATE ======
-let cart = JSON.parse(localStorage.getItem('se7en_cart') || '[]');
+let rawCart = [];
+try {
+  rawCart = JSON.parse(localStorage.getItem('se7en_cart') || '[]');
+  // Validate cart items — remove any corrupt entries
+  rawCart = rawCart.filter(i => i && i.id && i.name && i.price && i.size);
+} catch(e) {
+  rawCart = [];
+}
+let cart = rawCart;
 let allProducts = [];
 let pendingProduct = null;
 let selectedSize = null;
@@ -34,11 +42,11 @@ let customerAddress = null;
 
 // ====== INIT ======
 document.addEventListener('DOMContentLoaded', async () => {
-  // Initialize EmailJS
   emailjs.init(EMAILJS_PUBLIC_KEY);
   initLoader();
   initCursor();
   initNavScroll();
+  initMobileEnhancements();
   await loadProducts();
   updateCartUI();
 });
@@ -125,6 +133,100 @@ function initCursor() {
   });
 }
 
+// ====== MOBILE ENHANCEMENTS ======
+function initMobileEnhancements() {
+  const isMobile = window.matchMedia('(hover: none) and (pointer: coarse)').matches;
+  if (!isMobile) return;
+
+  // ── Touch Ripple Effect ──
+  document.addEventListener('touchstart', (e) => {
+    const target = e.target.closest('.cta-primary, .filter-tab, .contact-card, .product-card, .qty-btn, .size-btn, .qv-size-btn');
+    if (!target) return;
+
+    const ripple = document.createElement('span');
+    const rect   = target.getBoundingClientRect();
+    const size   = Math.max(rect.width, rect.height);
+    const touch  = e.touches[0];
+
+    ripple.className = 'ripple';
+    ripple.style.cssText = `
+      width: ${size}px; height: ${size}px;
+      left: ${touch.clientX - rect.left - size/2}px;
+      top:  ${touch.clientY - rect.top  - size/2}px;
+    `;
+
+    target.style.position = 'relative';
+    target.style.overflow = 'hidden';
+    target.appendChild(ripple);
+    setTimeout(() => ripple.remove(), 500);
+  }, { passive: true });
+
+  // ── Scroll Reveal ──
+  const revealEls = document.querySelectorAll(
+    '.contact-card, .about-feat, .feature-card, .section-tag, .shop-title, .about-title'
+  );
+  revealEls.forEach(el => el.classList.add('reveal'));
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry, i) => {
+      if (entry.isIntersecting) {
+        setTimeout(() => {
+          entry.target.classList.add('visible');
+        }, i * 80);
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.1 });
+
+  revealEls.forEach(el => observer.observe(el));
+
+  // ── Bottom Nav Active State ──
+  const sections = ['home', 'products', 'about', 'contact'];
+  const navLinks = {
+    home    : document.getElementById('navHome'),
+    products: document.getElementById('navShop'),
+    about   : document.getElementById('navAbout'),
+    contact : document.getElementById('navContact'),
+  };
+
+  window.addEventListener('scroll', () => {
+    let current = 'home';
+    sections.forEach(id => {
+      const el = document.getElementById(id);
+      if (el && window.scrollY >= el.offsetTop - 200) current = id;
+    });
+    Object.keys(navLinks).forEach(key => {
+      if (navLinks[key]) navLinks[key].classList.toggle('active', key === current);
+    });
+  }, { passive: true });
+
+  // ── Swipe down to close cart ──
+  const cartEl  = document.getElementById('cartSidebar');
+  let touchStartY = 0;
+
+  cartEl.addEventListener('touchstart', (e) => {
+    touchStartY = e.touches[0].clientY;
+  }, { passive: true });
+
+  cartEl.addEventListener('touchend', (e) => {
+    const diff = e.changedTouches[0].clientY - touchStartY;
+    if (diff > 80) toggleCart(false); // swipe down 80px → close
+  }, { passive: true });
+
+  // ── Swipe down to close Quick View ──
+  const qvEl = document.getElementById('qvModal');
+  let qvTouchStartY = 0;
+
+  qvEl.addEventListener('touchstart', (e) => {
+    qvTouchStartY = e.touches[0].clientY;
+  }, { passive: true });
+
+  qvEl.addEventListener('touchend', (e) => {
+    const diff = e.changedTouches[0].clientY - qvTouchStartY;
+    if (diff > 80) closeQuickView();
+  }, { passive: true });
+}
+
 // ====== NAVBAR SCROLL ======
 function initNavScroll() {
   window.addEventListener('scroll', () => {
@@ -143,16 +245,28 @@ async function loadProducts() {
 
     if (error) throw error;
 
-    allProducts = data.map(p => ({
-      id: p.id,
-      name: p.name,
-      category: p.category,
-      price: p.price,
-      badge: p.badge,
-      desc: p.description,
-      image: p.image_url,
-      sizes: p.sizes || ['S', 'M', 'L', 'XL', 'XXL']
-    }));
+    allProducts = data.map(p => {
+      // Fix sizes — Supabase returns array or string like "{S,M,L,XL}"
+      let sizes = ['S', 'M', 'L', 'XL', 'XXL'];
+      if (p.sizes) {
+        if (Array.isArray(p.sizes)) {
+          sizes = p.sizes.filter(Boolean);
+        } else if (typeof p.sizes === 'string') {
+          sizes = p.sizes.replace(/[{}]/g, '').split(',').map(s => s.trim()).filter(Boolean);
+        }
+      }
+
+      return {
+        id       : p.id,
+        name     : p.name || '',
+        category : p.category || '',
+        price    : parseInt(p.price) || 0,
+        badge    : p.badge || null,
+        desc     : p.description || '',
+        image    : p.image_url || null,
+        sizes    : sizes
+      };
+    });
 
     buildFilterTabs(allProducts);
     renderProducts(allProducts);
@@ -226,10 +340,12 @@ function updateShopTitle(category) {
 // ====== QUICK VIEW ======
 let qvProduct = null;
 let qvSelectedSize = null;
+let qvQty = 1;
 
 function openQuickView(productId) {
   qvProduct = allProducts.find(p => p.id === productId);
   qvSelectedSize = null;
+  qvQty = 1;
   if (!qvProduct) return;
 
   // Image
@@ -244,17 +360,30 @@ function openQuickView(productId) {
   document.getElementById('qvCategory').textContent = qvProduct.category?.toUpperCase() || '';
   document.getElementById('qvName').textContent      = qvProduct.name;
   document.getElementById('qvDesc').textContent      = qvProduct.desc || '';
-  document.getElementById('qvPrice').textContent     = `₹${qvProduct.price.toLocaleString('en-IN')}`;
+  document.getElementById('qvPrice').textContent     = `₹${(parseInt(qvProduct.price) || 0).toLocaleString('en-IN')}`;
 
   // Sizes
   document.getElementById('qvSizes').innerHTML = qvProduct.sizes.map(s => `
     <button class="qv-size-btn" onclick="selectQvSize('${s}', this)">${s}</button>
   `).join('');
 
+  // Quantity
+  updateQvQty();
+
   // Open
   document.getElementById('qvOverlay').classList.add('open');
   document.getElementById('qvModal').classList.add('open');
   document.body.style.overflow = 'hidden';
+}
+
+function updateQvQty() {
+  const qtyEl = document.getElementById('qvQtyNum');
+  if (qtyEl) qtyEl.textContent = qvQty;
+}
+
+function changeQvQty(delta) {
+  qvQty = Math.max(1, Math.min(10, qvQty + delta));
+  updateQvQty();
 }
 
 function selectQvSize(size, el) {
@@ -266,7 +395,10 @@ function selectQvSize(size, el) {
 function qvAddToCart() {
   if (!qvSelectedSize) { showToast('Please select a size!'); return; }
   closeQuickView();
-  addToCart(qvProduct, qvSelectedSize);
+  // Add with quantity
+  for (let i = 0; i < qvQty; i++) {
+    addToCart(qvProduct, qvSelectedSize);
+  }
 }
 
 function closeQuickView() {
@@ -275,6 +407,7 @@ function closeQuickView() {
   document.body.style.overflow = '';
   qvProduct = null;
   qvSelectedSize = null;
+  qvQty = 1;
 }
 
 function renderProducts(items) {
@@ -352,6 +485,189 @@ function confirmAddToCart() {
   addToCart(pendingProduct, selectedSize);
 }
 
+// ====== COUPON CODES ======
+// Coupon usage stored in localStorage per device
+// For production — move this to Supabase for cross-device tracking
+
+const COUPONS = {
+  'FIRST20'  : {
+    type       : 'percent',
+    value      : 20,
+    desc       : '20% off — First purchase welcome!',
+    rule       : 'first_time',     // Only usable once ever
+    minOrder   : 0,
+    maxUses    : 1,
+  },
+  'FLAT100'  : {
+    type       : 'flat',
+    value      : 100,
+    desc       : '₹100 off on your order!',
+    rule       : 'min_order',      // Only when order >= ₹1000
+    minOrder   : 1000,
+    maxUses    : Infinity,
+  },
+  'SE7ENFAN' : {
+    type       : 'percent',
+    value      : 15,
+    desc       : '15% off — Loyal fan reward!',
+    rule       : 'fifth_purchase', // Only on 5th purchase in a month
+    minOrder   : 0,
+    maxUses    : Infinity,
+  },
+};
+
+let appliedCoupon  = null;
+let discountAmount = 0;
+
+// ====== COUPON HELPERS ======
+function getCouponUsage(code) {
+  try {
+    const data = JSON.parse(localStorage.getItem('se7en_coupons') || '{}');
+    return data[code] || { uses: 0, month: '' };
+  } catch { return { uses: 0, month: '' }; }
+}
+
+function saveCouponUsage(code) {
+  try {
+    const data    = JSON.parse(localStorage.getItem('se7en_coupons') || '{}');
+    const now     = new Date();
+    const month   = `${now.getFullYear()}-${now.getMonth() + 1}`;
+    const current = data[code] || { uses: 0, month };
+
+    // Reset monthly count if new month
+    if (current.month !== month) {
+      current.uses  = 0;
+      current.month = month;
+    }
+
+    current.uses += 1;
+    data[code]    = current;
+    localStorage.setItem('se7en_coupons', JSON.stringify(data));
+  } catch(e) { console.error(e); }
+}
+
+function getOrderCount() {
+  try {
+    const now   = new Date();
+    const month = `${now.getFullYear()}-${now.getMonth() + 1}`;
+    const data  = JSON.parse(localStorage.getItem('se7en_orders') || '{}');
+    const entry = data[month] || { count: 0 };
+    return entry.count;
+  } catch { return 0; }
+}
+
+function incrementOrderCount() {
+  try {
+    const now   = new Date();
+    const month = `${now.getFullYear()}-${now.getMonth() + 1}`;
+    const data  = JSON.parse(localStorage.getItem('se7en_orders') || '{}');
+    const entry = data[month] || { count: 0 };
+    entry.count += 1;
+    data[month]  = entry;
+    localStorage.setItem('se7en_orders', JSON.stringify(data));
+  } catch(e) { console.error(e); }
+}
+
+// ====== APPLY COUPON ======
+function applyCoupon() {
+  const code    = document.getElementById('couponInput').value.trim().toUpperCase();
+  const discRow = document.getElementById('discountRow');
+  const discAmt = document.getElementById('discountAmt');
+
+  if (!code) {
+    showCouponMsg('Please enter a coupon code', 'error');
+    return;
+  }
+
+  const coupon = COUPONS[code];
+
+  if (!coupon) {
+    showCouponMsg('❌ Invalid coupon code', 'error');
+    appliedCoupon  = null;
+    discountAmount = 0;
+    discRow.style.display = 'none';
+    updateCartTotals();
+    return;
+  }
+
+  const subtotal = cartTotal();
+  const usage    = getCouponUsage(code);
+  const now      = new Date();
+  const month    = `${now.getFullYear()}-${now.getMonth() + 1}`;
+
+  // Reset monthly count if new month
+  const currentUses = usage.month === month ? usage.uses : 0;
+
+  // ── Rule checks ──
+
+  // FIRST TIME — only 1 use ever
+  if (coupon.rule === 'first_time') {
+    const totalUses = JSON.parse(localStorage.getItem('se7en_coupons') || '{}');
+    const allUses   = totalUses[code]?.uses || 0;
+    if (allUses >= coupon.maxUses) {
+      showCouponMsg('❌ This coupon has already been used', 'error');
+      return;
+    }
+  }
+
+  // MIN ORDER check
+  if (subtotal < coupon.minOrder) {
+    showCouponMsg(`❌ Minimum order ₹${coupon.minOrder.toLocaleString('en-IN')} required`, 'error');
+    return;
+  }
+
+  // FIFTH PURCHASE — only on 5th order this month
+  if (coupon.rule === 'fifth_purchase') {
+    const orderCount = getOrderCount();
+    if (orderCount < 4) {
+      showCouponMsg(`❌ Available on your 5th purchase this month (${orderCount}/4 done)`, 'error');
+      return;
+    }
+  }
+
+  // ── All checks passed — apply ──
+  if (coupon.type === 'percent') {
+    discountAmount = Math.round(subtotal * coupon.value / 100);
+  } else {
+    discountAmount = Math.min(coupon.value, subtotal);
+  }
+
+  appliedCoupon = code;
+  discRow.style.display = 'flex';
+  discAmt.textContent   = `-₹${discountAmount.toLocaleString('en-IN')}`;
+  showCouponMsg(`✓ ${coupon.desc}`, 'success');
+  updateCartTotals();
+}
+
+function showCouponMsg(msg, type) {
+  const el     = document.getElementById('couponMsg');
+  el.textContent = msg;
+  el.className   = `coupon-msg ${type}`;
+}
+
+function removeCoupon() {
+  appliedCoupon  = null;
+  discountAmount = 0;
+  document.getElementById('couponInput').value         = '';
+  document.getElementById('couponMsg').textContent     = '';
+  document.getElementById('discountRow').style.display = 'none';
+  updateCartTotals();
+}
+
+function updateCartTotals() {
+  const subtotal = cartTotal();
+  const final    = Math.max(0, subtotal - discountAmount);
+  document.getElementById('cartSubtotal').textContent  = `₹${subtotal.toLocaleString('en-IN')}`;
+  document.getElementById('cartTotal').textContent     = `₹${final.toLocaleString('en-IN')}`;
+
+  const freeShip = document.getElementById('cartFreeShip');
+  if (subtotal >= 999) {
+    freeShip.textContent = '✓ You qualify for FREE delivery!';
+  } else {
+    freeShip.textContent = `Add ₹${(999 - subtotal).toLocaleString('en-IN')} more for free delivery`;
+  }
+}
+
 // ====== CART LOGIC ======
 function addToCart(product, size) {
   const existing = cart.find(i => i.id === product.id && i.size === size);
@@ -383,18 +699,23 @@ function saveCart() {
 
 function resetCart() {
   cart = [];
+  appliedCoupon  = null;
+  discountAmount = 0;
   saveCart();
   updateCartUI();
 }
 
 function cartTotal() {
-  return cart.reduce((sum, i) => sum + i.price * i.qty, 0);
+  return cart.reduce((sum, i) => sum + (parseInt(i.price) || 0) * (parseInt(i.qty) || 1), 0);
 }
 
 function updateCartUI() {
-  const totalItems = cart.reduce((s, i) => s + i.qty, 0);
-  document.getElementById('cartCount').textContent = totalItems;
+  const totalItems = cart.reduce((s, i) => s + (i.qty || 0), 0);
+  document.getElementById('cartCount').textContent     = totalItems;
   document.getElementById('cartItemCount').textContent = `(${totalItems})`;
+  // Update mobile bottom nav badge
+  const mobileBadge = document.getElementById('cartBadgeMobile');
+  if (mobileBadge) mobileBadge.textContent = totalItems;
 
   const body = document.getElementById('cartItems');
   const foot = document.getElementById('cartFooter');
@@ -414,41 +735,49 @@ function updateCartUI() {
   }
 
   foot.style.display = 'flex';
-  body.innerHTML = cart.map(item => `
+  body.innerHTML = cart.map(item => {
+    const price    = parseInt(item.price) || 0;
+    const qty      = parseInt(item.qty)   || 1;
+    const total    = price * qty;
+    const size     = item.size || 'N/A';
+    const name     = item.name || 'Product';
+    const image    = item.image || null;
+
+    return `
     <div class="cart-item">
       <div class="cart-item-img">
-        ${item.image
-          ? `<img src="${item.image}" alt="${item.name}"/>`
-          : '👕'
-        }
+        ${image ? `<img src="${image}" alt="${name}"/>` : '👕'}
       </div>
       <div class="cart-item-details">
-        <div class="cart-item-name">${item.name}</div>
-        <div class="cart-item-size">SIZE: ${item.size}</div>
+        <div class="cart-item-name">${name}</div>
+        <div class="cart-item-size">SIZE: ${size}</div>
         <div class="cart-item-controls">
-          <button class="qty-btn" onclick="changeQty(${item.id},'${item.size}',-1)">−</button>
-          <span class="qty-num">${item.qty}</span>
-          <button class="qty-btn" onclick="changeQty(${item.id},'${item.size}',1)">+</button>
+          <button class="qty-btn" onclick="changeQty(${item.id},'${size}',-1)">−</button>
+          <span class="qty-num">${qty}</span>
+          <button class="qty-btn" onclick="changeQty(${item.id},'${size}',1)">+</button>
         </div>
       </div>
       <div class="cart-item-right">
-        <div class="cart-item-price">₹${(item.price * item.qty).toLocaleString('en-IN')}</div>
-        <button class="remove-btn" onclick="removeFromCart(${item.id},'${item.size}')">REMOVE</button>
+        <div class="cart-item-price">₹${total.toLocaleString('en-IN')}</div>
+        <button class="remove-btn" onclick="removeFromCart(${item.id},'${size}')">REMOVE</button>
       </div>
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
 
   const total = cartTotal();
   document.getElementById('cartSubtotal').textContent = `₹${total.toLocaleString('en-IN')}`;
-  document.getElementById('cartTotal').textContent = `₹${total.toLocaleString('en-IN')}`;
-
-  const freeShip = document.getElementById('cartFreeShip');
-  if (total >= 999) {
-    freeShip.textContent = '✓ You qualify for FREE delivery!';
-  } else {
-    freeShip.textContent = `Add ₹${(999 - total).toLocaleString('en-IN')} more for free delivery`;
+  // Recalculate discount if coupon applied
+  if (appliedCoupon && COUPONS[appliedCoupon]) {
+    const coupon = COUPONS[appliedCoupon];
+    if (coupon.type === 'percent') {
+      discountAmount = Math.round(total * coupon.value / 100);
+    } else {
+      discountAmount = Math.min(coupon.value, total);
+    }
+    document.getElementById('discountAmt').textContent = `-₹${discountAmount.toLocaleString('en-IN')}`;
+    document.getElementById('discountRow').style.display = 'flex';
   }
-}
+  updateCartTotals();
 
 // ====== CART TOGGLE ======
 function toggleCart(forceOpen) {
@@ -507,7 +836,8 @@ function proceedToPayment() {
 
 // ====== RAZORPAY ======
 function initRazorpay() {
-  const total = cartTotal();
+  const subtotal = cartTotal();
+  const total    = Math.max(0, subtotal - discountAmount);
 
   const options = {
     key: RAZORPAY_KEY,
@@ -602,6 +932,17 @@ async function saveOrder(paymentId) {
 function showSuccess(orderId, paymentId) {
   document.getElementById('successPid').textContent = `Order ID: ${orderId}`;
   openModal('successModalBg');
+
+  // Save coupon usage if one was applied
+  if (appliedCoupon) {
+    saveCouponUsage(appliedCoupon);
+    appliedCoupon  = null;
+    discountAmount = 0;
+  }
+
+  // Increment order count for this month
+  incrementOrderCount();
+
   sendEmailConfirmation(orderId, paymentId);
   sendOwnerEmailNotification(orderId, paymentId);
   sendWhatsAppConfirmation(orderId, paymentId);

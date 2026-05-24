@@ -1030,6 +1030,51 @@ img { display:block; width:100%; }
   border-top: 1px solid var(--black-3);
   display:flex; flex-direction:column; gap:10px;
 }
+/* ===== COUPON ===== */
+.coupon-row {
+  display: flex; gap: 8px;
+  margin-bottom: 4px;
+}
+.coupon-input {
+  flex: 1;
+  padding: 10px 14px;
+  background: var(--black-3);
+  border: 1px solid var(--black-4);
+  color: var(--white);
+  font-family: var(--font-ui);
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 2px;
+  outline: none;
+  text-transform: uppercase;
+  transition: border-color 0.2s;
+}
+.coupon-input:focus { border-color: var(--red); }
+.coupon-input::placeholder { color: var(--white-faint); font-weight: 300; }
+.coupon-btn {
+  padding: 10px 16px;
+  background: var(--black-4);
+  border: 1px solid var(--black-4);
+  color: var(--white);
+  font-family: var(--font-ui);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 2px;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.coupon-btn:hover { background: var(--red); border-color: var(--red); }
+.coupon-msg {
+  font-family: var(--font-ui);
+  font-size: 0.72rem;
+  letter-spacing: 1px;
+  min-height: 18px;
+  margin-bottom: 4px;
+}
+.coupon-msg.success { color: #4CAF50; }
+.coupon-msg.error   { color: var(--red-bright); }
+.discount-row { color: #4CAF50 !important; }
+
 .cart-foot-row {
   display:flex; align-items:center;
   justify-content:space-between;
@@ -1294,6 +1339,29 @@ img { display:block; width:100%; }
 }
 .qv-size-btn:hover { border-color: var(--red); color: var(--white); }
 .qv-size-btn.selected { background: var(--red); border-color: var(--red); color: var(--white); }
+.qv-qty-row {
+  display: flex; align-items: center;
+  justify-content: space-between;
+}
+.qv-qty-controls {
+  display: flex; align-items: center; gap: 12px;
+}
+.qv-qty-btn {
+  width: 32px; height: 32px;
+  background: var(--black-3);
+  border: 1px solid var(--black-4);
+  color: var(--white);
+  font-size: 1.1rem;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.2s;
+}
+.qv-qty-btn:hover { background: var(--red); border-color: var(--red); }
+.qv-qty-num {
+  font-family: var(--font-display);
+  font-size: 1.4rem; color: var(--white);
+  min-width: 28px; text-align: center;
+  line-height: 1;
+}
 .qv-free-ship {
   font-family: var(--font-ui);
   font-size: 0.72rem; font-weight: 300;
@@ -1371,7 +1439,7 @@ img { display:block; width:100%; }
   .shop-header { flex-direction:column; align-items:flex-start; }
   .about-right { padding:50px 30px; }
   .contact { padding:60px 20px; }
-  .footer { padding:28px 20px; }
+  .footer { padding:28px 20px; padding-bottom: 90px; }
   .footer-top { flex-direction:column; }
   .cart { width:100%; right:-100%; }
   .modal { padding:24px 20px; }
@@ -1384,3 +1452,251 @@ img { display:block; width:100%; }
   .product-img-wrap { height:220px; }
   .hero-bottom { padding:16px 20px; }
 }
+
+/* ===== MOBILE ENHANCEMENTS ===== */
+@media (hover: none) and (pointer: coarse) {
+
+  /* ── Bottom Navigation Bar ── */
+  .mobile-bottom-nav {
+    display: flex !important;
+  }
+
+  /* Push content above bottom nav */
+  body { padding-bottom: 70px; }
+  .wa-float { bottom: 90px; }
+
+  /* ── Hero mobile polish ── */
+  .hero-title { letter-spacing: 2px; }
+  .hero-eyebrow { justify-content: center; }
+  .hero-cta-row { justify-content: center; }
+  .hero-center { text-align: center; padding: 20px 16px; }
+
+  /* ── Smooth product card tap ── */
+  .product-card {
+    transition: transform 0.15s ease, box-shadow 0.15s ease !important;
+    border-radius: 2px;
+  }
+  .product-card:active {
+    transform: scale(0.97) !important;
+    box-shadow: 0 0 0 2px var(--red) !important;
+  }
+
+  /* ── Filter tabs scroll horizontally ── */
+  .filter-tabs {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    gap: 6px !important;
+    padding-bottom: 8px !important;
+    scrollbar-width: none !important;
+    -webkit-overflow-scrolling: touch !important;
+    justify-content: flex-start !important;
+  }
+  .filter-tabs::-webkit-scrollbar { display: none; }
+  .filter-tab {
+    flex-shrink: 0 !important;
+    padding: 8px 16px !important;
+    font-size: 0.72rem !important;
+  }
+
+  /* ── Contact cards tap effect ── */
+  .contact-card:active {
+    transform: scale(0.97) !important;
+    border-color: var(--red) !important;
+  }
+
+  /* ── CTA button tap effect ── */
+  .cta-primary:active {
+    transform: scale(0.97) !important;
+    background: var(--red-bright) !important;
+  }
+
+  /* ── Cart slide from bottom on mobile ── */
+  .cart {
+    top: auto !important;
+    bottom: 0 !important;
+    right: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 85vh !important;
+    border-radius: 20px 20px 0 0 !important;
+    border-left: none !important;
+    border-top: 2px solid var(--red) !important;
+    transform: translateY(100%) !important;
+    transition: transform 0.4s cubic-bezier(0.16,1,0.3,1) !important;
+  }
+  .cart.open {
+    transform: translateY(0) !important;
+    right: 0 !important;
+  }
+
+  /* Cart drag handle */
+  .cart-head::before {
+    content: '';
+    display: block;
+    width: 40px; height: 4px;
+    background: var(--black-4);
+    border-radius: 2px;
+    margin: 0 auto 16px;
+    position: absolute;
+    top: 10px; left: 50%;
+    transform: translateX(-50%);
+  }
+  .cart-head { padding-top: 32px; position: relative; }
+
+  /* ── Quick view slides from bottom ── */
+  .qv-modal {
+    grid-template-columns: 1fr !important;
+    top: auto !important; left: 0 !important;
+    bottom: 0 !important; right: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    max-height: 92vh !important;
+    border-radius: 20px 20px 0 0 !important;
+    border-top: 2px solid var(--red) !important;
+    transform: translateY(100%) !important;
+    transition: transform 0.4s cubic-bezier(0.16,1,0.3,1) !important;
+  }
+  .qv-modal.open {
+    transform: translateY(0) !important;
+  }
+  .qv-modal::before {
+    content: '';
+    display: block;
+    width: 40px; height: 4px;
+    background: var(--black-4);
+    border-radius: 2px;
+    position: absolute;
+    top: 10px; left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+  }
+  .qv-left { min-height: 220px !important; }
+  .qv-right { padding: 20px 20px 32px !important; }
+
+  /* ── Modals slide from bottom ── */
+  .modal-bg { align-items: flex-end !important; padding: 0 !important; }
+  .modal {
+    border-radius: 20px 20px 0 0 !important;
+    border-top: 2px solid var(--red) !important;
+    border-left: none !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    animation: slideUpMobile 0.4s cubic-bezier(0.16,1,0.3,1) !important;
+  }
+  .modal::before {
+    content: '';
+    display: block;
+    width: 40px; height: 4px;
+    background: var(--black-4);
+    border-radius: 2px;
+    margin: 0 auto 16px;
+  }
+
+  /* ── Smooth scroll snap on products ── */
+  .products-grid {
+    scroll-snap-type: none;
+  }
+
+  /* ── About section mobile ── */
+  .about-left { min-height: 200px !important; }
+  .about-big-num { font-size: 8rem !important; }
+
+  /* ── Hero scroll indicator hidden ── */
+  .hero-scroll-indicator { display: none; }
+
+  /* ── Ticker faster on mobile ── */
+  .ticker-track { animation-duration: 14s !important; }
+}
+
+/* ── Bottom Nav Bar (Mobile only) ── */
+.mobile-bottom-nav {
+  display: none;
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  background: rgba(10,10,10,0.98);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid rgba(209,0,0,0.3);
+  z-index: 900;
+  padding: 8px 0 12px;
+}
+.mobile-bottom-nav ul {
+  display: flex;
+  list-style: none;
+  justify-content: space-around;
+  align-items: center;
+  padding: 0 8px;
+}
+.mobile-bottom-nav a {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  color: var(--white-faint);
+  font-family: var(--font-ui);
+  font-size: 0.58rem;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  transition: color 0.2s;
+  -webkit-tap-highlight-color: transparent;
+}
+.mobile-bottom-nav a:active { color: var(--red); }
+.mobile-bottom-nav a.active { color: var(--red); }
+.mobile-bottom-nav .nav-icon { font-size: 1.2rem; line-height: 1; }
+.mobile-bottom-nav .cart-nav-btn {
+  background: none; border: none;
+  display: flex; flex-direction: column;
+  align-items: center; gap: 4px;
+  padding: 6px 12px;
+  color: var(--white-faint);
+  font-family: var(--font-ui);
+  font-size: 0.58rem;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  position: relative;
+}
+.mobile-bottom-nav .cart-nav-btn:active { color: var(--red); }
+.mobile-bottom-nav .cart-badge {
+  position: absolute;
+  top: 2px; right: 6px;
+  background: var(--red);
+  color: var(--white);
+  font-size: 0.55rem;
+  font-weight: 700;
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+}
+
+/* ── Touch Ripple Effect ── */
+.ripple {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(209,0,0,0.25);
+  transform: scale(0);
+  animation: rippleAnim 0.5s ease-out;
+  pointer-events: none;
+}
+@keyframes rippleAnim {
+  to { transform: scale(4); opacity: 0; }
+}
+
+/* ── Slide up animation for mobile modals ── */
+@keyframes slideUpMobile {
+  from { transform: translateY(100%); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+/* ── Scroll reveal animation ── */
+.reveal {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+

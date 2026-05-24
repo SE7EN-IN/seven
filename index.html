@@ -260,6 +260,43 @@
   </div>
 </footer>
 
+<!-- MOBILE BOTTOM NAV -->
+<nav class="mobile-bottom-nav" id="mobileBottomNav">
+  <ul>
+    <li>
+      <a href="#home" class="active" id="navHome">
+        <span class="nav-icon">🏠</span>
+        HOME
+      </a>
+    </li>
+    <li>
+      <a href="#products" id="navShop">
+        <span class="nav-icon">👕</span>
+        SHOP
+      </a>
+    </li>
+    <li>
+      <button class="cart-nav-btn" onclick="toggleCart()">
+        <span class="nav-icon">🛍️</span>
+        <span class="cart-badge" id="cartBadgeMobile">0</span>
+        BAG
+      </button>
+    </li>
+    <li>
+      <a href="#about" id="navAbout">
+        <span class="nav-icon">⚡</span>
+        ABOUT
+      </a>
+    </li>
+    <li>
+      <a href="#contact" id="navContact">
+        <span class="nav-icon">📞</span>
+        CONTACT
+      </a>
+    </li>
+  </ul>
+</nav>
+
 <!-- WHATSAPP FLOAT -->
 <a href="whatsapp://send?phone=919965682888&text=Hi%20SE7EN!%20I%20want%20to%20know%20more%20about%20your%20jerseys."
    onclick="this.href=(/iPhone|Android/i.test(navigator.userAgent)?'whatsapp://send?phone=919965682888&text=Hi%20SE7EN!%20I%20want%20to%20know%20more%20about%20your%20jerseys.':'https://wa.me/919965682888?text=Hi%20SE7EN!%20I%20want%20to%20know%20more%20about%20your%20jerseys.')"
@@ -284,9 +321,19 @@
     </div>
   </div>
   <div class="cart-foot" id="cartFooter" style="display:none">
+    <!-- Coupon Section -->
+    <div class="coupon-row">
+      <input type="text" id="couponInput" placeholder="ENTER COUPON CODE" class="coupon-input"/>
+      <button class="coupon-btn" onclick="applyCoupon()">APPLY</button>
+    </div>
+    <div class="coupon-msg" id="couponMsg"></div>
     <div class="cart-foot-row">
       <span>SUBTOTAL</span>
       <span id="cartSubtotal">₹0</span>
+    </div>
+    <div class="cart-foot-row discount-row" id="discountRow" style="display:none">
+      <span>DISCOUNT</span>
+      <span id="discountAmt" style="color:#4CAF50">-₹0</span>
     </div>
     <div class="cart-foot-row cart-foot-row--total">
       <span>TOTAL</span>
@@ -314,6 +361,15 @@
     <div class="qv-divider"></div>
     <div class="qv-size-label">SELECT SIZE</div>
     <div class="qv-sizes" id="qvSizes"></div>
+    <div class="qv-divider"></div>
+    <div class="qv-qty-row">
+      <div class="qv-size-label">QUANTITY</div>
+      <div class="qv-qty-controls">
+        <button class="qv-qty-btn" onclick="changeQvQty(-1)">−</button>
+        <span class="qv-qty-num" id="qvQtyNum">1</span>
+        <button class="qv-qty-btn" onclick="changeQvQty(1)">+</button>
+      </div>
+    </div>
     <div class="qv-divider"></div>
     <button class="cta-primary full" id="qvAddBtn" onclick="qvAddToCart()">
       ADD TO BAG
