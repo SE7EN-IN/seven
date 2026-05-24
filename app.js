@@ -4,8 +4,8 @@
 // ===========================
 
 // ====== SUPABASE CONFIG ======
-const SUPABASE_URL = 'https://ovckuxlmtezrwldwasjs.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im92Y2t1eGxtdGV6cndsZHdhc2pzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyNTI4MzAsImV4cCI6MjA5NDgyODgzMH0.AD7tBMUPTx8nj8ZIhXwKFUNNns1gcFocpUTVqI4QLLM';
+const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
 
 let supabaseClient = null;
 try {
@@ -56,11 +56,13 @@ function initLoader() {
   const fill   = document.getElementById('loaderFill');
   const loader = document.getElementById('loader');
   const isMobile = window.matchMedia('(hover: none) and (pointer: coarse)').matches;
-
-  // Faster load on mobile
-  const duration = isMobile ? 800 : 1800;
+  const duration = isMobile ? 800 : 1600;
   setTimeout(() => { fill.style.width = '100%'; }, 100);
-  setTimeout(() => { loader.classList.add('done'); }, duration);
+  setTimeout(() => {
+    loader.classList.add('done');
+    // Force hide after animation
+    setTimeout(() => { loader.style.display = 'none'; }, 700);
+  }, duration);
 }
 
 // ====== MAGNETIC CURSOR ======
@@ -236,6 +238,18 @@ function initNavScroll() {
 
 // ====== LOAD PRODUCTS FROM SUPABASE ======
 async function loadProducts() {
+  const grid = document.getElementById('productsGrid');
+
+  // Check if Supabase is configured
+  if (!supabaseClient) {
+    grid.innerHTML = `
+      <div style="grid-column:1/-1;text-align:center;padding:80px 20px;color:var(--white-faint);font-family:var(--font-ui);letter-spacing:2px;font-size:0.8rem;line-height:2">
+        ⚠️ SUPABASE NOT CONFIGURED<br/>
+        <span style="font-size:0.7rem;color:var(--red)">Add your Supabase URL and Anon Key in app.js</span>
+      </div>`;
+    return;
+  }
+
   try {
     const { data, error } = await supabaseClient
       .from('products')
