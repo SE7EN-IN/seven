@@ -4,8 +4,8 @@
 // ===========================
 
 // ====== SUPABASE CONFIG ======
-const SUPABASE_URL = 'YOUR_SUPABASE_URL';
-const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+const SUPABASE_URL = 'https://ovckuxlmtezrwldwasjs.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im92Y2t1eGxtdGV6cndsZHdhc2pzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyNTI4MzAsImV4cCI6MjA5NDgyODgzMH0.AD7tBMUPTx8nj8ZIhXwKFUNNns1gcFocpUTVqI4QLLM';
 
 let supabaseClient = null;
 try {
