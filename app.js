@@ -43,34 +43,12 @@ let customerAddress = null;
 // ====== INIT ======
 document.addEventListener('DOMContentLoaded', async () => {
   emailjs.init(EMAILJS_PUBLIC_KEY);
-  initLoader();
   initCursor();
   initNavScroll();
   initMobileEnhancements();
   await loadProducts();
   updateCartUI();
 });
-
-// ====== LOADER ======
-function initLoader() {
-  const fill   = document.getElementById('loaderFill');
-  const loader = document.getElementById('loader');
-  const isMobile = window.matchMedia('(hover: none) and (pointer: coarse)').matches;
-  const duration = isMobile ? 600 : 1200;
-  setTimeout(() => { fill.style.width = '100%'; }, 100);
-  setTimeout(() => {
-    loader.classList.add('done');
-    loader.style.opacity = '0';
-    loader.style.pointerEvents = 'none';
-    setTimeout(() => {
-      loader.style.display = 'none';
-    }, 600);
-  }, duration);
-  // Safety fallback — force hide after 3 seconds no matter what
-  setTimeout(() => {
-    loader.style.display = 'none';
-  }, 3000);
-}
 
 // ====== MAGNETIC CURSOR ======
 function initCursor() {
