@@ -4,8 +4,8 @@
 // ===========================
 
 // ====== SUPABASE CONFIG ======
-const SUPABASE_URL = 'https://ovckuxlmtezrwldwasjs.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im92Y2t1eGxtdGV6cndsZHdhc2pzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyNTI4MzAsImV4cCI6MjA5NDgyODgzMH0.AD7tBMUPTx8nj8ZIhXwKFUNNns1gcFocpUTVqI4QLLM';
+const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
 
 let supabaseClient = null;
 try {
@@ -228,24 +228,38 @@ async function loadProducts() {
   // Check if Supabase is configured
   if (!supabaseClient) {
     grid.innerHTML = `
-      <div style="grid-column:1/-1;text-align:center;padding:80px 20px;color:var(--white-faint);font-family:var(--font-ui);letter-spacing:2px;font-size:0.8rem;line-height:2">
+      <div style="grid-column:1/-1;text-align:center;padding:60px 20px;color:var(--white-faint);font-family:var(--font-ui);letter-spacing:2px;font-size:0.8rem;line-height:2.5">
         ⚠️ SUPABASE NOT CONFIGURED<br/>
-        <span style="font-size:0.7rem;color:var(--red)">Add your Supabase URL and Anon Key in app.js</span>
+        <span style="font-size:0.7rem;color:var(--red)">Add your Supabase URL and Anon Key in app.js lines 7-8</span>
       </div>`;
     return;
   }
 
   try {
-    const { data, error } = await supabaseClient
+    // Add 8 second timeout so it never loads forever
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('timeout')), 8000)
+    );
+
+    const fetchPromise = supabaseClient
       .from('products')
       .select('*')
       .eq('active', true)
       .limit(30);
 
+    const { data, error } = await Promise.race([fetchPromise, timeoutPromise]);
+
     if (error) throw error;
+    if (!data || data.length === 0) {
+      grid.innerHTML = `
+        <div style="grid-column:1/-1;text-align:center;padding:60px 20px;color:var(--white-faint);font-family:var(--font-ui);letter-spacing:2px;font-size:0.8rem;line-height:2.5">
+          NO PRODUCTS FOUND<br/>
+          <span style="font-size:0.7rem;color:var(--red)">Add products in Supabase and set active = true</span>
+        </div>`;
+      return;
+    }
 
     allProducts = data.map(p => {
-      // Fix sizes — Supabase returns array or string like "{S,M,L,XL}"
       let sizes = ['S', 'M', 'L', 'XL', 'XXL'];
       if (p.sizes) {
         if (Array.isArray(p.sizes)) {
@@ -254,7 +268,6 @@ async function loadProducts() {
           sizes = p.sizes.replace(/[{}]/g, '').split(',').map(s => s.trim()).filter(Boolean);
         }
       }
-
       return {
         id       : p.id,
         name     : p.name || '',
@@ -272,9 +285,27 @@ async function loadProducts() {
 
   } catch (err) {
     console.error('Failed to load products:', err);
-    document.getElementById('productsGrid').innerHTML = `
-      <div style="grid-column:1/-1;text-align:center;padding:80px 20px;color:var(--white-faint);font-family:var(--font-ui);letter-spacing:2px;font-size:0.8rem;">
-        UNABLE TO LOAD COLLECTION.<br/>CHECK YOUR SUPABASE CONNECTION.
+
+    const isTimeout = err.message === 'timeout';
+    grid.innerHTML = `
+      <div style="grid-column:1/-1;text-align:center;padding:60px 20px;color:var(--white-faint);font-family:var(--font-ui);letter-spacing:2px;font-size:0.8rem;line-height:2.5">
+        ${isTimeout ? '⏱️ CONNECTION TIMED OUT' : '❌ FAILED TO LOAD'}<br/>
+        <span style="font-size:0.7rem;color:var(--red)">
+          ${isTimeout
+            ? 'Check your Supabase URL and Anon Key in app.js'
+            : 'Check your internet connection and Supabase settings'
+          }
+        </span><br/><br/>
+        <button onclick="loadProducts()" style="
+          padding:10px 24px;
+          background:var(--red);
+          border:none;
+          color:white;
+          font-family:var(--font-ui);
+          font-size:0.75rem;
+          letter-spacing:2px;
+          cursor:pointer;
+        ">↺ RETRY</button>
       </div>`;
   }
 }
@@ -1100,4 +1131,6 @@ function showToast(msg) {
   `;
   document.body.appendChild(toast);
   setTimeout(() => toast.remove(), 3000);
+}
+
 }
